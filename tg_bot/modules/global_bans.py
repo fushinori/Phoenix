@@ -129,10 +129,10 @@ def gban(bot: Bot, update: Update, args: List[str]):
     message.reply_text("Done! {} has been globally banned.".format(mention_html(user_chat.id, user_chat.first_name)),
                        parse_mode=ParseMode.HTML)
 
-       try:
-           bot.send_message(user_id, "You've been globally banned from all groups where I am admin. If this is a mistake, you can appeal your ban @GraveyardDwellers or PM @TheRealPhoenix
-       except:
-           pass #Bot either blocked or never started by user
+    try:
+        bot.send_message(user_id, "You've been globally banned from all groups where I am admin. If this is a mistake, you can appeal your ban @GraveyardDwellers or PM @TheRealPhoenix",parse_mode=ParseMode.HTML)
+    except:
+        pass #Bot either blocked or never started by user
 
 
 @run_async
