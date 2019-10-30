@@ -63,7 +63,7 @@ def gban(bot: Bot, update: Update, args: List[str]):
         return
 
     if user_id == bot.id:
-        message.reply_text("-_- So funny, lets gban myself why don't I? Nice try.")
+        message.reply_text("Nice try but I ain't gonna gban myself!")
         return
 
     try:
@@ -92,10 +92,11 @@ def gban(bot: Bot, update: Update, args: List[str]):
 
         return
 
-    message.reply_text("*Blows dust off of banhammer* 😉")
+    message.reply_text("Starting a global ban for {}".format(mention_html(user_chat.id, user_chat.first_name)),
+                       parse_mode=ParseMode.HTML)
 
     banner = update.effective_user  # type: Optional[User]
-    send_to_list(bot, SUDO_USERS + SUPPORT_USERS,
+    send_to_list(bot, SUDO_USERS,
                  "{} is gbanning user {} "
                  "because:\n{}".format(mention_html(banner.id, banner.first_name),
                                        mention_html(user_chat.id, user_chat.first_name), reason or "No reason given"),
@@ -118,14 +119,20 @@ def gban(bot: Bot, update: Update, args: List[str]):
                 pass
             else:
                 message.reply_text("Could not gban due to: {}".format(excp.message))
-                send_to_list(bot, SUDO_USERS + SUPPORT_USERS, "Could not gban due to: {}".format(excp.message))
+                send_to_list(bot, SUDO_USERS, "Could not gban due to: {}".format(excp.message))
                 sql.ungban_user(user_id)
                 return
         except TelegramError:
             pass
 
-    send_to_list(bot, SUDO_USERS + SUPPORT_USERS, "gban complete!")
-    message.reply_text("Person has been gbanned.")
+    send_to_list(bot, SUDO_USERS, "Gban complete!")
+    message.reply_text("Done! {} has been globally banned.".format(mention_html(user_chat.id, user_chat.first_name)),
+                       parse_mode=ParseMode.HTML)
+
+       try:
+           bot.send_message(user_id, "You've been globally banned from all groups where I am admin. If this is a mistake, you can appeal your ban @GraveyardDwellers or PM @TheRealPhoenix
+       except:
+           pass #Bot either blocked or never started by user
 
 
 @run_async
@@ -148,9 +155,10 @@ def ungban(bot: Bot, update: Update, args: List[str]):
 
     banner = update.effective_user  # type: Optional[User]
 
-    message.reply_text("I'll give {} a second chance, globally.".format(user_chat.first_name))
+    message.reply_text("I'll give {} a second chance, globally.".format(mention_html(user_chat.id, user_chat.first_name)),
+                       parse_mode=ParseMode.HTML)
 
-    send_to_list(bot, SUDO_USERS + SUPPORT_USERS,
+    send_to_list(bot, SUDO_USERS,
                  "{} has ungbanned user {}".format(mention_html(banner.id, banner.first_name),
                                                    mention_html(user_chat.id, user_chat.first_name)),
                  html=True)
@@ -180,9 +188,10 @@ def ungban(bot: Bot, update: Update, args: List[str]):
 
     sql.ungban_user(user_id)
 
-    send_to_list(bot, SUDO_USERS + SUPPORT_USERS, "un-gban complete!")
+    send_to_list(bot, SUDO_USERS, "Un-gban complete!")
 
-    message.reply_text("Person has been un-gbanned.")
+    message.reply_text("{} has been un-gbanned.".format(mention_html(user_chat.id, user_chat.first_name)),
+                        parse_mode=Parse.ModeHTML)
 
 
 @run_async
