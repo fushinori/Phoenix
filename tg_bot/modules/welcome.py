@@ -8,7 +8,7 @@ from telegram.ext import MessageHandler, Filters, CommandHandler, run_async
 from telegram.utils.helpers import mention_markdown, mention_html, escape_markdown
 
 import tg_bot.modules.sql.welcome_sql as sql
-from tg_bot import dispatcher, OWNER_ID, LOGGER
+from tg_bot import dispatcher, OWNER_ID, LOGGER, SUDO_USERS, SUPPORT_USERS
 from tg_bot.modules.helper_funcs.chat_status import user_admin
 from tg_bot.modules.helper_funcs.misc import build_keyboard, revert_buttons
 from tg_bot.modules.helper_funcs.msg_types import get_welcome_type
@@ -90,7 +90,19 @@ def new_member(bot: Bot, update: Update):
                 update.effective_message.reply_text("Master is in the houseeee, let's get this party started!")
                 continue
 
-            # Don't welcome yourself
+            # Welcome Sudos 
+            elif new_mem.id in SUDO_USERS:
+                update.effective_message.reply_text("Ayy, one of my sudo users just joined! 👀")
+                continue
+			 
+            # Welcome Support
+            elif new_mem.id in SUPPORT_USERS:
+                update.effective_message.reply_text("Ayy, one of my support users just joined! 👀")
+                continue
+
+
+
+                # Don't welcome yourself
             elif new_mem.id == bot.id:
                 continue
 
@@ -122,13 +134,13 @@ def new_member(bot: Bot, update: Update):
                     buttons = sql.get_welc_buttons(chat.id)
                     keyb = build_keyboard(buttons)
                 else:
-                    res = sql.DEFAULT_WELCOME.format(first=first_name)
+                    res = sql.DEFAULT_WELCOME.format(mention=mention)
                     keyb = []
 
                 keyboard = InlineKeyboardMarkup(keyb)
 
                 sent = send(update, res, keyboard,
-                            sql.DEFAULT_WELCOME.format(first=first_name))  # type: Optional[Message]
+                            sql.DEFAULT_WELCOME.format(mention=mention))  # type: Optional[Message]
 
         prev_welc = sql.get_clean_pref(chat.id)
         if prev_welc:
