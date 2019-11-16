@@ -20,6 +20,7 @@ from tg_bot.modules.helper_funcs.misc import paginate_modules
 
 PM_START_TEXT = """
 Hi {}, my name is {}!
+To add me to your groups, [click here!](http://telegram.me/TheRealPhoenixBot?startgroup=botstart)
 
 You can find the list of available commands with /help
 """
