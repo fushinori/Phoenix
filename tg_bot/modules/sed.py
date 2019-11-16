@@ -95,7 +95,7 @@ def sed(bot: Bot, update: Update):
             update.effective_message.reply_text("The result of the sed command was too long for \
                                                  telegram!")
         elif text:
-            update.effective_message.reply_to_message.reply_text(text)
+            update.effective_message.reply_to_message.reply_text("「sed」\n"+text)
 
 
 __help__ = """
