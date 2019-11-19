@@ -170,7 +170,7 @@ def new_member(bot: Bot, update: Update):
                                              can_send_other_messages=False, 
                                              can_add_web_page_previews=False)
         
-            delete_join(bot, update)
+            #delete_join
         prev_welc = sql.get_clean_pref(chat.id)
         if prev_welc:
             try:
