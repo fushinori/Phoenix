@@ -69,7 +69,7 @@ def warn(user: User, chat: Chat, reason: str, message: Message, warner: User = N
         reply = "{} has {}/{} warnings... watch out!".format(mention_html(user.id, user.first_name), num_warns,
                                                              limit)
         if reason:
-            reply += "\nReason for last warn:\n{}".format(html.escape(reason))
+            reply += "\nReason for last warn:\n<code>{}</code>".format(html.escape(reason))
 
         log_reason = "<b>{}:</b>" \
                      "\n#WARN" \
@@ -118,7 +118,7 @@ def button(bot: Bot, update: Update) -> str:
                                                                 user_member.user.id)
         else:
             update.effective_message.edit_text(
-                "User has already has no warns.".format(mention_html(user.id, user.first_name)),
+                "User already has no warns.".format(mention_html(user.id, user.first_name)),
                 parse_mode=ParseMode.HTML)
 
     return ""
@@ -142,6 +142,34 @@ def warn_user(bot: Bot, update: Update, args: List[str]) -> str:
             return warn(chat.get_member(user_id).user, chat, reason, message, warner)
     else:
         message.reply_text("No user was designated!")
+    return ""
+
+
+@run_async
+@user_admin
+@bot_admin
+@loggable
+def remove_warn(bot: Bot, update: Update, args: List[str]) -> str:
+    message = update.effective_message  # type: Optional[Message]
+    chat = update.effective_chat  # type: Optional[Chat]
+    user = update.effective_user  # type: Optional[User]
+
+    user_id = extract_user(message, args)
+
+    if user_id:
+        sql.remove_warn(user_id, chat.id)
+        message.reply_text("Last warning has been removed!")
+        warned = chat.get_member(user_id).user
+        return "<b>{}:</b>" \
+               "\n#UNWARN" \
+               "\n<b>• Admin:</b> {}" \
+               "\n<b>• User:</b> {}" \
+               "\n<b>• ID:</b> <code>{}</code>".format(html.escape(chat.title),
+                                                       mention_html(user.id, user.first_name),
+                                                       mention_html(warned.id, warned.first_name),
+                                                       warned.id)
+    else:
+        message.reply_text("No user has been designated!")
     return ""
 
 
@@ -400,6 +428,8 @@ __help__ = """
 
 *Admin only:*
  - /warn <userhandle>: warn a user. After 3 warns, the user will be banned from the group. Can also be used as a reply.
+ - /unwarn <userhandle>: remove the last warning of the user. Can also be used as a reply.
+ - /rmwarn <userhandle>: same as /unwarn.
  - /resetwarn <userhandle>: reset the warnings for a user. Can also be used as a reply.
  - /addwarn <keyword> <reply message>: set a warning filter on a certain keyword. If you want your keyword to \
 be a sentence, encompass it with quotes, as such: `/addwarn "very angry" This is an angry user`. 
@@ -411,6 +441,7 @@ be a sentence, encompass it with quotes, as such: `/addwarn "very angry" This is
 __mod_name__ = "Warnings"
 
 WARN_HANDLER = CommandHandler("warn", warn_user, pass_args=True, filters=Filters.group)
+UNWARN_HANDLER = CommandHandler(["unwarn", "rmwarn"], remove_warn, pass_args=True, filters=Filters.group)
 RESET_WARN_HANDLER = CommandHandler(["resetwarn", "resetwarns"], reset_warns, pass_args=True, filters=Filters.group)
 CALLBACK_QUERY_HANDLER = CallbackQueryHandler(button, pattern=r"rm_warn")
 MYWARNS_HANDLER = DisableAbleCommandHandler("warns", warns, pass_args=True, filters=Filters.group)
@@ -422,6 +453,7 @@ WARN_LIMIT_HANDLER = CommandHandler("warnlimit", set_warn_limit, pass_args=True,
 WARN_STRENGTH_HANDLER = CommandHandler("strongwarn", set_warn_strength, pass_args=True, filters=Filters.group)
 
 dispatcher.add_handler(WARN_HANDLER)
+dispatcher.add_handler(UNWARN_HANDLER)
 dispatcher.add_handler(CALLBACK_QUERY_HANDLER)
 dispatcher.add_handler(RESET_WARN_HANDLER)
 dispatcher.add_handler(MYWARNS_HANDLER)
