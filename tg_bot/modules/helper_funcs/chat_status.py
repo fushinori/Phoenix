@@ -33,6 +33,25 @@ def is_user_admin(chat: Chat, user_id: int, member: ChatMember = None) -> bool:
     return member.status in ('administrator', 'creator')
 
 
+def sudo_user(func):
+    @wraps(func)
+    def is_admin(bot: Bot, update: Update, *args, **kwargs):
+        user = update.effective_user  # type: Optional[User]
+        if user.id in SUDO_USERS:
+            return func(bot, update, *args, **kwargs)
+
+        elif not user:
+            pass
+
+        elif DEL_CMDS and " " not in update.effective_message.text:
+            update.effective_message.delete()
+
+        else:
+            update.effective_message.reply_text("This command is restricted to my sudo users only.")
+
+    return is_admin
+
+
 def is_bot_admin(chat: Chat, bot_id: int, bot_member: ChatMember = None) -> bool:
     if chat.type == 'private' \
             or chat.all_members_are_administrators:
