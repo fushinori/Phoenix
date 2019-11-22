@@ -6,7 +6,7 @@ from telegram.error import BadRequest
 from telegram.ext import run_async, CommandHandler, Filters
 from telegram.utils.helpers import mention_html
 
-from tg_bot import dispatcher, BAN_STICKER, LOGGER
+from tg_bot import dispatcher, BAN_STICKER, LOGGER, OWNER_ID
 from tg_bot.modules.disable import DisableAbleCommandHandler
 from tg_bot.modules.helper_funcs.chat_status import bot_admin, user_admin, is_user_ban_protected, can_restrict, \
     is_user_admin, is_user_in_chat
@@ -40,12 +40,16 @@ def ban(bot: Bot, update: Update, args: List[str]) -> str:
         else:
             raise
 
-    if is_user_ban_protected(chat, user_id, member):
-        message.reply_text("I really wish I could ban admins...")
+    if user_id == int(OWNER_ID):
+        message.reply_text("I'm not gonna ban my owner, want me to ban you instead?!")
         return ""
 
-    if user_id == bot.id:
+    elif user_id == bot.id:
         message.reply_text("I'm not gonna BAN myself, are you crazy?")
+        return ""
+
+    elif is_user_ban_protected(chat, user_id, member):
+        message.reply_text("I really wish I could ban admins...")
         return ""
 
     log = "<b>{}:</b>" \
