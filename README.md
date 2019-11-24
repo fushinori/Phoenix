@@ -6,3 +6,7 @@ Originally a Marie fork, Pɧơɛnıх was created for personal use by [this pers
 Can be found on telegram as [Pɧơɛnıх](https://t.me/TheRealPhoenixBot).
 
 If you want to create your own bot, you can basically follow the steps given [here](https://github.com/PaulSonOfLars/tgbot/blob/master/README.md).
+
+## Credits
+[SkittBot](https://github.com/skittles9823/SkittBot) for stickers module.
+[SaitamaRobot](https://github.com/AnimeKaizoku/SaitamaRobot) for evaluator and more.
