@@ -194,7 +194,7 @@ def ungban(bot: Bot, update: Update, args: List[str]):
     send_to_list(bot, SUDO_USERS, "Un-gban complete!")
 
     message.reply_text("{} has been un-gbanned.".format(mention_html(user_chat.id, user_chat.first_name)),
-                        parse_mode=Parse.ModeHTML)
+                        parse_mode=ParseMode.HTML)
 
 
 @run_async
