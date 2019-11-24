@@ -1,7 +1,6 @@
 import hashlib
 import os
 import math
-import requests
 import urllib.request as urllib
 
 from io import BytesIO
@@ -17,6 +16,7 @@ from telegram.utils.helpers import escape_markdown
 from tg_bot import dispatcher
 
 from tg_bot.modules.disable import DisableAbleCommandHandler
+
 
 @run_async
 def stickerid(bot: Bot, update: Update):
@@ -47,9 +47,22 @@ def getsticker(bot: Bot, update: Update):
 def steal(bot: Bot, update: Update, args: List[str]):
     msg = update.effective_message
     user = update.effective_user
-    hash = hashlib.sha1(bytearray(user.id)).hexdigest()
-    packname = "a" + hash[:20] + "_by_"+bot.username
-    kangsticker = "stolensticker.png"
+    packnum = 0
+    packname = "a" + str(user.id) + "_by_"+bot.username
+    packname_found = 0
+    max_stickers = 120
+    while packname_found == 0:
+        try:
+            stickerset = bot.get_sticker_set(packname)
+            if len(stickerset.stickers) >= max_stickers:
+                    packnum += 1
+                    packname = "a" + str(packnum) + "_" + str(user.id) + "_by_"+bot.username
+            else:
+                packname_found = 1
+        except TelegramError as e:
+            if e.message == "Stickerset_invalid":
+                packname_found = 1
+    stolensticker = "stolensticker.png"
     if msg.reply_to_message:
         if msg.reply_to_message.sticker:
             file_id = msg.reply_to_message.sticker.file_id
@@ -57,8 +70,10 @@ def steal(bot: Bot, update: Update, args: List[str]):
             file_id = msg.reply_to_message.photo[-1].file_id
         elif msg.reply_to_message.document:
             file_id = msg.reply_to_message.document.file_id
-        kang_file = bot.get_file(file_id)
-        kang_file.download('stolensticker.png')
+        else:
+            msg.reply_text("Yea, I can't steal that.")
+        stolen_file = bot.get_file(file_id)
+        stolen_file.download('stolensticker.png')
         if args:
             sticker_emoji = str(args[0])
         elif msg.reply_to_message.sticker and msg.reply_to_message.sticker.emoji:
@@ -66,7 +81,7 @@ def steal(bot: Bot, update: Update, args: List[str]):
         else:
             sticker_emoji = "🤔"
         try:
-            im = Image.open(kangsticker)
+            im = Image.open(stolensticker)
             maxsize = (512, 512)
             if (im.width and im.height) < 512:
                 size1 = im.width
@@ -89,25 +104,28 @@ def steal(bot: Bot, update: Update, args: List[str]):
                 im.save(stolensticker, "PNG")
             bot.add_sticker_to_set(user_id=user.id, name=packname,
                                     png_sticker=open('stolensticker.png', 'rb'), emojis=sticker_emoji)
-            msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n"
-                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
+            msg.reply_text(f"Sticker successfully added to [pack](t.me/addstickers/{packname})" +
+                            f"\nEmoji is: {sticker_emoji}", parse_mode=ParseMode.MARKDOWN)
         except OSError as e:
-            msg.reply_text("I can only steal images m8.")
+            msg.reply_text("I can only steal images, dude.")
             print(e)
             return
         except TelegramError as e:
             if e.message == "Stickerset_invalid":
-                makepack_internal(msg, user, open('stolensticker.png', 'rb'), sticker_emoji, bot)
+                makepack_internal(msg, user, open('stolensticker.png', 'rb'), sticker_emoji, bot, packname, packnum)
             elif e.message == "Sticker_png_dimensions":
-                im.save(kangsticker, "PNG")
+                im.save(stolensticker, "PNG")
                 bot.add_sticker_to_set(user_id=user.id, name=packname,
                                         png_sticker=open('stolensticker.png', 'rb'), emojis=sticker_emoji)
-                msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n"
-                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
+                msg.reply_text(f"Sticker successfully added to [pack](t.me/addstickers/{packname})" +
+                                f"\nEmoji is: {sticker_emoji}", parse_mode=ParseMode.MARKDOWN)
             elif e.message == "Invalid sticker emojis":
                 msg.reply_text("Invalid emoji(s).")
             elif e.message == "Stickers_too_much":
-                msg.reply_text("Max packsize reached. R.I.P.")
+                msg.reply_text("Max packsize reached.")
+            elif e.message == "Internal Server Error: sticker set not found (500)":
+                msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n"
+                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
             print(e)
     elif args:
         try:
@@ -117,8 +135,8 @@ def steal(bot: Bot, update: Update, args: List[str]):
                 sticker_emoji = urlemoji[2]
             except IndexError:
                 sticker_emoji = "🤔"
-            urllib.urlretrieve(png_sticker, kangsticker)
-            im = Image.open(kangsticker)
+            urllib.urlretrieve(png_sticker, stolensticker)
+            im = Image.open(stolensticker)
             maxsize = (512, 512)
             if (im.width and im.height) < 512:
                 size1 = im.width
@@ -137,38 +155,57 @@ def steal(bot: Bot, update: Update, args: List[str]):
                 im = im.resize(sizenew)
             else:
                 im.thumbnail(maxsize)
-            im.save(kangsticker, "PNG")
+            im.save(stolensticker, "PNG")
             msg.reply_photo(photo=open('stolensticker.png', 'rb'))
             bot.add_sticker_to_set(user_id=user.id, name=packname,
                                     png_sticker=open('stolensticker.png', 'rb'), emojis=sticker_emoji)
-            msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n"
-                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
+            msg.reply_text(f"Sticker successfully added to [pack](t.me/addstickers/{packname})" +
+                            f"\nEmoji is: {sticker_emoji}", parse_mode=ParseMode.MARKDOWN)
         except OSError as e:
-            msg.reply_text("I can only steal images m8.")
+            msg.reply_text("I can only steal images, dude.")
             print(e)
             return
         except TelegramError as e:
             if e.message == "Stickerset_invalid":
-                makepack_internal(msg, user, open('stolensticker.png', 'rb'), sticker_emoji, bot)
+                makepack_internal(msg, user, open('stolensticker.png', 'rb'), sticker_emoji, bot, packname, packnum)
             elif e.message == "Sticker_png_dimensions":
-                msg.reply_text("Could not resize image to the correct dimensions.")
+                im.save(stolensticker, "PNG")
+                bot.add_sticker_to_set(user_id=user.id, name=packname,
+                                        png_sticker=open('stolensticker.png', 'rb'), emojis=sticker_emoji)
+                msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n" +
+                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
             elif e.message == "Invalid sticker emojis":
                 msg.reply_text("Invalid emoji(s).")
+            elif e.message == "Stickers_too_much":
+                msg.reply_text("Max packsize reached.")
+            elif e.message == "Internal Server Error: sticker set not found (500)":
+                msg.reply_text("Sticker successfully added to [pack](t.me/addstickers/%s)" % packname + "\n"
+                            "Emoji is:" + " " + sticker_emoji, parse_mode=ParseMode.MARKDOWN)
             print(e)
     else:
-        msg.reply_text("Please reply to a sticker, or image to steal it!" + "\n"
-                        "Oh, by the way. Your pack can be found [here](t.me/addstickers/%s)" % packname, parse_mode=ParseMode.MARKDOWN)
+        packs = "Please reply to a sticker or image to steal it to your pack!\nOh by the way, here are your packs:\n"
+        if packnum > 0:
+            firstpackname = "a" + str(user.id) + "_by_"+bot.username
+            for i in range(0, packnum + 1):
+                if i == 0:
+                    packs += f"[pack](t.me/addstickers/{firstpackname})\n"
+                else:
+                    packs += f"[pack{i}](t.me/addstickers/{packname})\n"
+        else:
+            packs += f"[pack](t.me/addstickers/{packname})"
+        msg.reply_text(packs, parse_mode=ParseMode.MARKDOWN)
     if os.path.isfile("stolensticker.png"):
-        im.close()
         os.remove("stolensticker.png")
 
-def makepack_internal(msg, user, png_sticker, emoji, bot):
+
+def makepack_internal(msg, user, png_sticker, emoji, bot, packname, packnum):
     name = user.first_name
     name = name[:50]
-    hash = hashlib.sha1(bytearray(user.id)).hexdigest()
-    packname = f"a{hash[:20]}_by_{bot.username}"
     try:
-        success = bot.create_new_sticker_set(user.id, packname, name + "'s Sticker Pack",
+        extra_version = ""
+        if packnum > 0:
+            extra_version = " " + str(packnum)
+        success = bot.create_new_sticker_set(user.id, packname, f"{name}'s Sticker Pack" + extra_version,
                                              png_sticker=png_sticker,
                                              emojis=emoji)
     except TelegramError as e:
@@ -179,18 +216,22 @@ def makepack_internal(msg, user, png_sticker, emoji, bot):
         elif e.message == "Peer_id_invalid":
             msg.reply_text("Contact me in PM first.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
                 text="Start", url=f"t.me/{bot.username}")]]))
+        elif e.message == "Internal Server Error: created sticker set not found (500)":
+                msg.reply_text("Sticker pack successfully created! Get it [here](t.me/addstickers/%s)" % packname,
+                       parse_mode=ParseMode.MARKDOWN)
         return
 
     if success:
-        msg.reply_text("Sticker pack successfully created. Get it [here](t.me/addstickers/%s)" % packname,
+        msg.reply_text("Sticker pack successfully created! Get it [here](t.me/addstickers/%s)" % packname,
                        parse_mode=ParseMode.MARKDOWN)
     else:
         msg.reply_text("Failed to create sticker pack.")
 
+
 __help__ = """
-- /stickerid: reply to a sticker for me to tell you its file ID.
-- /getsticker: reply to a sticker for me to upload its raw PNG file.
-- /steal: reply to a sticker to add it to your pack.
+- /stickerid: reply to a sticker to get its ID.
+- /getsticker: reply to a sticker to get the raw PNG image.
+- /steal: reply to a sticker or image to add it to your pack.
 """
 
 __mod_name__ = "Stickers"
