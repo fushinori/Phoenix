@@ -1,4 +1,5 @@
-import html, time
+from html import escape
+import time
 import re
 from typing import Optional, List
 
@@ -6,7 +7,7 @@ from telegram import Message, Chat, Update, Bot, User, CallbackQuery
 from telegram import ParseMode, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import MessageHandler, Filters, CommandHandler, run_async, CallbackQueryHandler
-from telegram.utils.helpers import mention_markdown, mention_html, escape_markdown
+from telegram.utils.helpers import mention_html
 
 import tg_bot.modules.sql.welcome_sql as sql
 from tg_bot import dispatcher, OWNER_ID, LOGGER, SUDO_USERS, SUPPORT_USERS
@@ -14,7 +15,7 @@ from tg_bot.modules.helper_funcs.chat_status import user_admin, can_delete, is_u
 from tg_bot.modules.helper_funcs.misc import build_keyboard, revert_buttons
 from tg_bot.modules.helper_funcs.msg_types import get_welcome_type
 from tg_bot.modules.helper_funcs.string_handling import markdown_parser, \
-    escape_invalid_curly_brackets
+    escape_invalid_curly_brackets, markdown_to_html
 from tg_bot.modules.log_channel import loggable
 
 VALID_WELCOME_FORMATTERS = ['first', 'last', 'fullname', 'username', 'id', 'count', 'chatname', 'mention']
@@ -34,36 +35,36 @@ ENUM_FUNC_MAP = {
 # do not async
 def send(update, message, keyboard, backup_message):
     try:
-        msg = update.effective_message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard)
+        msg = update.effective_message.reply_text(message, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except IndexError:
         msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                   "\nNote: the current message was "
                                                                   "invalid due to markdown issues. Could be "
                                                                   "due to the user's name."),
-                                                  parse_mode=ParseMode.MARKDOWN)
+                                                  parse_mode=ParseMode.HTML)
     except KeyError:
         msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                   "\nNote: the current message is "
                                                                   "invalid due to an issue with some misplaced "
                                                                   "curly brackets. Please update"),
-                                                  parse_mode=ParseMode.MARKDOWN)
+                                                  parse_mode=ParseMode.HTML)
     except BadRequest as excp:
         if excp.message == "Button_url_invalid":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has an invalid url "
                                                                       "in one of its buttons. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
         elif excp.message == "Unsupported url protocol":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has buttons which "
                                                                       "use url protocols that are unsupported by "
                                                                       "telegram. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
         elif excp.message == "Wrong url host":
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: the current message has some bad urls. "
                                                                       "Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
             LOGGER.warning(message)
             LOGGER.warning(keyboard)
             LOGGER.exception("Could not parse! got invalid url host errors")
@@ -71,7 +72,7 @@ def send(update, message, keyboard, backup_message):
             msg = update.effective_message.reply_text(markdown_parser(backup_message +
                                                                       "\nNote: An error occured when sending the "
                                                                       "custom message. Please update."),
-                                                      parse_mode=ParseMode.MARKDOWN)
+                                                      parse_mode=ParseMode.HTML)
             LOGGER.exception()
 
     return msg
@@ -84,6 +85,7 @@ def new_member(bot: Bot, update: Update):
     msg = update.effective_message # type: Optional[Message]
     chat_name = chat.title or chat.first or chat.username # type: Optional:[chat name]
     should_welc, cust_welcome, welc_type = sql.get_welc_pref(chat.id)
+    cust_welcome = markdown_to_html(cust_welcome)
     welc_mutes = sql.welcome_mutes(chat.id)
     user_id = user.id
     human_checks = sql.get_human_checks(user_id, chat.id)
@@ -93,7 +95,7 @@ def new_member(bot: Bot, update: Update):
         for new_mem in new_members:
             # Give the owner a special welcome
             if new_mem.id == OWNER_ID:
-                update.effective_message.reply_text("Master is in the houseeee, let's get this party started!")
+                update.effective_message.reply_text("Good to see you here, master!")
                 continue
 
             # Welcome Sudos 
@@ -125,17 +127,17 @@ def new_member(bot: Bot, update: Update):
                     else:
                         fullname = first_name
                     count = chat.get_members_count()
-                    mention = mention_markdown(new_mem.id, first_name)
+                    mention = mention_html(new_mem.id, first_name)
                     if new_mem.username:
-                        username = "@" + escape_markdown(new_mem.username)
+                        username = "@" + escape(new_mem.username)
                     else:
                         username = mention
 
                     valid_format = escape_invalid_curly_brackets(cust_welcome, VALID_WELCOME_FORMATTERS)
-                    res = valid_format.format(first=escape_markdown(first_name),
-                                              last=escape_markdown(new_mem.last_name or first_name),
-                                              fullname=escape_markdown(fullname), username=username, mention=mention,
-                                              count=count, chatname=escape_markdown(chat.title), id=new_mem.id)
+                    res = valid_format.format(first=escape(first_name),
+                                              last=escape(new_mem.last_name or first_name),
+                                              fullname=escape(fullname), username=username, mention=mention,
+                                              count=count, chatname=escape(chat.title), id=new_mem.id)
                     buttons = sql.get_welc_buttons(chat.id)
                     keyb = build_keyboard(buttons)
                 else:
@@ -186,6 +188,7 @@ def new_member(bot: Bot, update: Update):
 def left_member(bot: Bot, update: Update):
     chat = update.effective_chat  # type: Optional[Chat]
     should_goodbye, cust_goodbye, goodbye_type = sql.get_gdbye_pref(chat.id)
+    cust_goodbye = markdown_to_html(cust_goodbye)
     if should_goodbye:
         left_mem = update.effective_message.left_chat_member
         if left_mem:
@@ -210,17 +213,17 @@ def left_member(bot: Bot, update: Update):
                 else:
                     fullname = first_name
                 count = chat.get_members_count()
-                mention = mention_markdown(left_mem.id, first_name)
+                mention = mention_html(left_mem.id, first_name)
                 if left_mem.username:
-                    username = "@" + escape_markdown(left_mem.username)
+                    username = "@" + escape(left_mem.username)
                 else:
                     username = mention
 
                 valid_format = escape_invalid_curly_brackets(cust_goodbye, VALID_WELCOME_FORMATTERS)
-                res = valid_format.format(first=escape_markdown(first_name),
-                                          last=escape_markdown(left_mem.last_name or first_name),
-                                          fullname=escape_markdown(fullname), username=username, mention=mention,
-                                          count=count, chatname=escape_markdown(chat.title), id=left_mem.id)
+                res = valid_format.format(first=escape(first_name),
+                                          last=escape(left_mem.last_name or first_name),
+                                          fullname=escape(fullname), username=username, mention=mention,
+                                          count=count, chatname=escape(chat.title), id=left_mem.id)
                 buttons = sql.get_gdbye_buttons(chat.id)
                 keyb = build_keyboard(buttons)
 
@@ -244,7 +247,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
         update.effective_message.reply_text(
             "This chat has it's welcome setting set to: `{}`.\n*The welcome message "
             "(not filling the {{}}) is:*".format(pref),
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.HTML)
 
         if welcome_type == sql.Types.BUTTON_TEXT:
             buttons = sql.get_welc_buttons(chat.id)
@@ -263,7 +266,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
                 ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m)
 
             else:
-                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m, parse_mode=ParseMode.MARKDOWN)
+                ENUM_FUNC_MAP[welcome_type](chat.id, welcome_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
@@ -290,7 +293,7 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
         update.effective_message.reply_text(
             "This chat has it's goodbye setting set to: `{}`.\n*The goodbye  message "
             "(not filling the {{}}) is:*".format(pref),
-            parse_mode=ParseMode.MARKDOWN)
+            parse_mode=ParseMode.HTML)
 
         if goodbye_type == sql.Types.BUTTON_TEXT:
             buttons = sql.get_gdbye_buttons(chat.id)
@@ -309,7 +312,7 @@ def goodbye(bot: Bot, update: Update, args: List[str]):
                 ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m)
 
             else:
-                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.MARKDOWN)
+                ENUM_FUNC_MAP[goodbye_type](chat.id, goodbye_m, parse_mode=ParseMode.HTML)
 
     elif len(args) >= 1:
         if args[0].lower() in ("on", "yes"):
@@ -345,7 +348,7 @@ def set_welcome(bot: Bot, update: Update) -> str:
     return "<b>{}:</b>" \
            "\n#SET_WELCOME" \
            "\n<b>Admin:</b> {}" \
-           "\nSet the welcome message.".format(html.escape(chat.title),
+           "\nSet the welcome message.".format(escape(chat.title),
                                                mention_html(user.id, user.first_name))
 
 
@@ -360,7 +363,7 @@ def reset_welcome(bot: Bot, update: Update) -> str:
     return "<b>{}:</b>" \
            "\n#RESET_WELCOME" \
            "\n<b>Admin:</b> {}" \
-           "\nReset the welcome message to default.".format(html.escape(chat.title),
+           "\nReset the welcome message to default.".format(escape(chat.title),
                                                             mention_html(user.id, user.first_name))
 
 
@@ -382,7 +385,7 @@ def set_goodbye(bot: Bot, update: Update) -> str:
     return "<b>{}:</b>" \
            "\n#SET_GOODBYE" \
            "\n<b>Admin:</b> {}" \
-           "\nSet the goodbye message.".format(html.escape(chat.title),
+           "\nSet the goodbye message.".format(escape(chat.title),
                                                mention_html(user.id, user.first_name))
 
 
@@ -397,7 +400,7 @@ def reset_goodbye(bot: Bot, update: Update) -> str:
     return "<b>{}:</b>" \
            "\n#RESET_GOODBYE" \
            "\n<b>Admin:</b> {}" \
-           "\nReset the goodbye message.".format(html.escape(chat.title),
+           "\nReset the goodbye message.".format(escape(chat.title),
                                                  mention_html(user.id, user.first_name))
 
 
@@ -416,7 +419,7 @@ def welcomemute(bot: Bot, update: Update, args: List[str]) -> str:
             return "<b>{}:</b>" \
                    "\n#WELCOME_MUTE" \
                    "\n<b>• Admin:</b> {}" \
-                   "\nHas toggled welcome mute to <b>OFF</b>.".format(html.escape(chat.title),
+                   "\nHas toggled welcome mute to <b>OFF</b>.".format(escape(chat.title),
                                                                       mention_html(user.id, user.first_name))
         elif args[0].lower() in ("soft"):
              sql.set_welcome_mutes(chat.id, "soft")
@@ -424,7 +427,7 @@ def welcomemute(bot: Bot, update: Update, args: List[str]) -> str:
              return "<b>{}:</b>" \
                     "\n#WELCOME_MUTE" \
                     "\n<b>• Admin:</b> {}" \
-                    "\nHas toggled welcome mute to <b>SOFT</b>.".format(html.escape(chat.title),
+                    "\nHas toggled welcome mute to <b>SOFT</b>.".format(escape(chat.title),
                                                                        mention_html(user.id, user.first_name))
         elif args[0].lower() in ("strong"):
              sql.set_welcome_mutes(chat.id, "strong")
@@ -432,7 +435,7 @@ def welcomemute(bot: Bot, update: Update, args: List[str]) -> str:
              return "<b>{}:</b>" \
                     "\n#WELCOME_MUTE" \
                     "\n<b>• Admin:</b> {}" \
-                    "\nHas toggled welcome mute to <b>STRONG</b>.".format(html.escape(chat.title),
+                    "\nHas toggled welcome mute to <b>STRONG</b>.".format(escape(chat.title),
                                                                           mention_html(user.id, user.first_name))
         else:
             msg.reply_text("Please enter `off`/`no`/`soft`/`strong`!", parse_mode=ParseMode.MARKDOWN)
@@ -465,7 +468,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
         return "<b>{}:</b>" \
                "\n#CLEAN_WELCOME" \
                "\n<b>Admin:</b> {}" \
-               "\nHas toggled clean welcomes to <code>ON</code>.".format(html.escape(chat.title),
+               "\nHas toggled clean welcomes to <code>ON</code>.".format(escape(chat.title),
                                                                          mention_html(user.id, user.first_name))
     elif args[0].lower() in ("off", "no"):
         sql.set_clean_welcome(str(chat.id), False)
@@ -473,7 +476,7 @@ def clean_welcome(bot: Bot, update: Update, args: List[str]) -> str:
         return "<b>{}:</b>" \
                "\n#CLEAN_WELCOME" \
                "\n<b>Admin:</b> {}" \
-               "\nHas toggled clean welcomes to <code>OFF</code>.".format(html.escape(chat.title),
+               "\nHas toggled clean welcomes to <code>OFF</code>.".format(escape(chat.title),
                                                                           mention_html(user.id, user.first_name))
     else:
         # idek what you're writing, say yes or no
@@ -569,7 +572,7 @@ def __chat_settings__(chat_id, user_id):
 
 
 __help__ = """
-{}
+Welcome/bid farewell to members in your group with the help of this module!
 
 *Admin only:*
  - /welcome <on/off>: enable/disable welcome messages.
@@ -584,7 +587,7 @@ __help__ = """
  - /wlcmutehelp: gives information about welcome mutes.
 
  - /welcomehelp: view more formatting information for custom welcome/goodbye messages.
-""".format(WELC_HELP_TXT)
+"""
 
 __mod_name__ = "Greetings"
 

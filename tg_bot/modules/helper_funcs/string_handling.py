@@ -1,5 +1,7 @@
 import re
 import time
+import bleach
+import markdown2
 from typing import Dict, List
 
 import emoji
@@ -256,3 +258,10 @@ def extract_time(message, time_val):
     else:
         message.reply_text("Invalid time type specified. Expected m,h, or d, got: {}".format(time_val[-1]))
         return ""
+
+
+def markdown_to_html(text):
+    text = text.replace("*", "**")
+    text = text.replace("`", "```")
+    _html = markdown2.markdown(text)
+    return bleach.clean(_html, tags=['strong', 'em', 'a', 'code', 'pre'], strip=True)[:-1]

@@ -10,3 +10,5 @@ Pillow>=4.2.0
 aiohttp>=2.2.5
 pynewtonmath
 psutil
+bleach
+markdown2
