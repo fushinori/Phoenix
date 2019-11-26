@@ -93,7 +93,7 @@ def new_fed(bot: Bot, update: Update):
 											"\n`/joinfed {}`".format(fed_name, fed_id, fed_id), parse_mode=ParseMode.MARKDOWN)
 		try:
 			bot.send_message(MESSAGE_DUMP,
-				"Federation <b>{}</b> have been created with ID: <pre>{}</pre>".format(fed_name, fed_id), parse_mode=ParseMode.HTML)
+				"Federation <b>{}</b> has been created with ID: <pre>{}</pre>".format(fed_name, fed_id), parse_mode=ParseMode.HTML)
 		except:
 			LOGGER.warning("Cannot send a message to MESSAGE_DUMP")
 	else:
@@ -351,7 +351,7 @@ def fed_admin(bot: Bot, update: Update, args: List[str]):
 	chat = update.effective_chat  # type: Optional[Chat]
 	info = sql.get_fed_info(fed_id)
 
-	text = "<b>Federation Admins {}:</b>\n\n".format(info['fname'])
+	text = "<b>Federation admins of {}:</b>\n\n".format(info['fname'])
 	text += "👑 Owner:\n"
 	owner = bot.get_chat(info['owner'])
 	try:
@@ -1116,12 +1116,12 @@ def get_chat(chat_id, chat_data):
 __mod_name__ = "Federations"
 
 __help__ = """
-Ah, group management. Everything is fun and games until spammers start joining your group, and you have to ban them. They start joining all your groups and you're forced to ban them individually.
+Ah, group management. Everything is fun and games till spammers start joining your group, and you have to ban them. They start joining all your groups and you're forced to ban them individually.
 
 That's where federations come in! You can have a fedban in one chat ban the user from all your groups! Moreover, you can add trusted users as admins and have them ban across all your chats. Pretty efficient!
 
 
-Commands:
+*Commands*:
  - /newfed <fedname>: create a new federation with the name given. Users are only allowed to have one federation each. This command can also be used to rename the federation. (max. 64 characters)
  - /delfed: delete your federation, and all information related to it. However, this will NOT unban the banned users.
  - /fedinfo <FedID>: information about the specified federation.
