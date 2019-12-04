@@ -247,7 +247,7 @@ def welcome(bot: Bot, update: Update, args: List[str]):
         update.effective_message.reply_text(
             "This chat has it's welcome setting set to: `{}`.\n*The welcome message "
             "(not filling the {{}}) is:*".format(pref),
-            parse_mode=ParseMode.HTML)
+            parse_mode=ParseMode.MARKDOWN)
 
         if welcome_type == sql.Types.BUTTON_TEXT:
             buttons = sql.get_welc_buttons(chat.id)
