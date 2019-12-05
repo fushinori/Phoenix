@@ -175,11 +175,13 @@ def unpin(bot: Bot, update: Update) -> str:
 def invite(bot: Bot, update: Update):
     chat = update.effective_chat  # type: Optional[Chat]
     if chat.username:
-        update.effective_message.reply_text(chat.username)
+        update.effective_message.reply_text("@" + chat.username)
     elif chat.type == chat.SUPERGROUP or chat.type == chat.CHANNEL:
         bot_member = chat.get_member(bot.id)
         if bot_member.can_invite_users:
-            invitelink = bot.exportChatInviteLink(chat.id)
+            invitelink = chat.invite_link
+            if not invitelink:
+                invitelink = bot.exportChatInviteLink(chat.id)
             update.effective_message.reply_text(invitelink)
         else:
             update.effective_message.reply_text("I don't have access to the invite link, try changing my permissions!")
@@ -209,10 +211,11 @@ __help__ = """
 
 *Admin only:*
  - /pin: silently pins the message replied to - add 'loud' or 'notify' to give notifs to users.
- - /unpin: unpins the currently pinned message
- - /invitelink: gets invitelink
- - /promote: promotes the user replied to
- - /demote: demotes the user replied to
+ - /unpin: unpins the currently pinned message.
+ - /link: gets invitelink of the chat.
+ - /promote: promotes the user you reply to.
+ - /demote: demotes the user you reply to.
+
 """
 
 __mod_name__ = "Admin"
@@ -220,7 +223,7 @@ __mod_name__ = "Admin"
 PIN_HANDLER = CommandHandler("pin", pin, pass_args=True, filters=Filters.group)
 UNPIN_HANDLER = CommandHandler("unpin", unpin, filters=Filters.group)
 
-INVITE_HANDLER = CommandHandler("invitelink", invite, filters=Filters.group)
+INVITE_HANDLER = CommandHandler("link", invite, filters=Filters.group)
 
 PROMOTE_HANDLER = CommandHandler("promote", promote, pass_args=True, filters=Filters.group)
 DEMOTE_HANDLER = CommandHandler("demote", demote, pass_args=True, filters=Filters.group)
