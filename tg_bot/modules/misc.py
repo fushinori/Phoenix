@@ -153,7 +153,7 @@ def slap(bot: Bot, update: Update, args: List[str]):
     if msg.from_user.username:
         curr_user = msg.from_user.first_name
     else:
-        curr_user = "[{}](tg://user?id={})".format(msg.from_user.first_name, msg.from_user.id)
+        curr_user = """<a href="tg://user?id={}">{}</a>""".format(msg.from_user.id, msg.from_user.first_name)
 
     user_id = extract_user(update.effective_message, args)
     if user_id:
@@ -162,12 +162,12 @@ def slap(bot: Bot, update: Update, args: List[str]):
         if slapped_user.username:
             user2 = slapped_user.first_name
         else:
-            user2 = "[{}](tg://user?id={})".format(slapped_user.first_name,
-                                                   slapped_user.id)
+            user2 = """<a href="tg://user?id={}">{}</a>""".format(slapped_user.id,
+                                                   slapped_user.first_name)
 
     # if no target found, bot targets the sender
     else:
-        user1 = "[{}](tg://user?id={})".format(bot.first_name, bot.id)
+        user1 = """<a href="tg://user?id={}">{}</a>""".format(bot.id, bot.first_name)
         user2 = curr_user
 
     temp = random.choice(SLAP_TEMPLATES)
@@ -177,7 +177,7 @@ def slap(bot: Bot, update: Update, args: List[str]):
 
     repl = temp.format(user1=user1, user2=user2, item=item, hits=hit, throws=throw)
 
-    reply_text(repl, parse_mode=ParseMode.MARKDOWN)
+    reply_text(repl, parse_mode=ParseMode.HTML)
 
 
 @run_async
