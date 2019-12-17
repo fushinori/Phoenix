@@ -409,6 +409,30 @@ def ping(bot: Bot, update: Update):
     update.effective_message.reply_text("*Pong!!!*\n`{}ms`".format(ping_time), parse_mode=ParseMode.MARKDOWN)
 
 
+@run_async
+def sudo_list(bot: Bot, update: Update):
+    reply = "<b>Sudo Users:</b>\n"
+    for sudo in SUDO_USERS:
+        user_id = int(sudo) # Ensure int
+        user = bot.get_chat(user_id)
+        first_name = user.first_name.replace(">", "&gt;") # Escape > character
+        first_name = first_name.replace("<", "&lt;") # Escape < character
+        reply += """• <a href="tg://user?id={}">{}</a>\n""".format(user_id, first_name)
+    update.effective_message.reply_text(reply, parse_mode=ParseMode.HTML)
+
+
+@run_async
+def support_list(bot: Bot, update: Update):
+    reply = "<b>Support Users:</b>\n"
+    for support in SUPPORT_USERS:
+        user_id = int(support) # Ensure int
+        user = bot.get_chat(user_id)
+        first_name = user.first_name.replace(">", "&gt;") # Escape > character
+        first_name = first_name.replace("<", "&lt;") # Escape < character
+        reply += """• <a href="tg://user?id={}">{}</a>\n""".format(user_id, first_name)
+    update.effective_message.reply_text(reply, parse_mode=ParseMode.HTML)
+
+
 # /ip is for private use
 __help__ = """
  - /ping: pings the bot.
@@ -439,6 +463,8 @@ MD_HELP_HANDLER = CommandHandler("markdownhelp", markdown_help, filters=Filters.
 STATS_HANDLER = CommandHandler("stats", stats, filters=CustomFilters.sudo_filter)
 GDPR_HANDLER = CommandHandler("gdpr", gdpr, filters=Filters.private)
 PING_HANDLER = DisableAbleCommandHandler("ping", ping)
+SUDO_LIST_HANDLER = CommandHandler("sudolist", sudo_list, filters=CustomFilters.sudo_filter | CustomFilters.support_filter)
+SUPPORT_LIST_HANDLER = CommandHandler("supportlist", support_list, filters=CustomFilters.sudo_filter | CustomFilters.support_filter)
 
 dispatcher.add_handler(ID_HANDLER)
 dispatcher.add_handler(IP_HANDLER)
@@ -452,3 +478,5 @@ dispatcher.add_handler(STATS_HANDLER)
 dispatcher.add_handler(RAM_HANDLER)
 dispatcher.add_handler(GDPR_HANDLER)
 dispatcher.add_handler(PING_HANDLER)
+dispatcher.add_handler(SUDO_LIST_HANDLER)
+dispatcher.add_handler(SUPPORT_LIST_HANDLER)
