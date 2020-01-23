@@ -14,3 +14,7 @@ You can also tap the button below to deploy straight to Heroku!
 ## Credits
 [SkittBot](https://github.com/skittles9823/SkittBot) for stickers module.
 [SaitamaRobot](https://github.com/AnimeKaizoku/SaitamaRobot) for evaluator and more.
+
+## Notice
+[Click here](https://github.com/rsktg/TheRealPhoenixBot) for the repository with all new changes.
+No new features will be added anymore besides bug fixes, if any.
